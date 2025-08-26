@@ -1,1 +1,1 @@
-# **LeadForge AI
+# LeadForge AI
