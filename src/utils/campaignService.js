@@ -6,17 +6,18 @@ const campaignService = {
   getCampaigns: async () => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
-        .select(`*, linkedin_leads(count), id`)
+        .from('campaigns_new')
+        .select(`*, leads_generated(count), id`)
         .order('created_at', { ascending: false });
 
       if (error) return { success: false, error: error.message };
 
-      const campaignsWithStats = data?.map((campaign) => ({
-        ...campaign,
-        leads_generated: campaign.linkedin_leads?.[0]?.count || 0,
-        campaign_id: campaign.id, // Ensuring campaign_id is always present explicitly
-      })) || [];
+      const campaignsWithStats =
+        data?.map((campaign) => ({
+          ...campaign,
+          leads_generated: campaign.leads_generated?.[0]?.count || 0,
+          campaign_id: campaign.id, // keep consistent for FE usage
+        })) || [];
 
       return { success: true, data: campaignsWithStats };
     } catch (error) {
@@ -31,8 +32,13 @@ const campaignService = {
   createCampaign: async (campaignData) => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
-        .insert([{ ...campaignData, status: campaignData.status || 'draft' }])
+        .from('campaigns_new')
+        .insert([
+          {
+            ...campaignData,
+            campaign_status: campaignData.campaign_status || 'draft',
+          },
+        ])
         .select()
         .single();
 
@@ -52,7 +58,7 @@ const campaignService = {
       console.log('⏳ Starting enrichment:', { campaignId, filters });
 
       const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .select('id, user_id')
         .eq('id', campaignId)
         .single();
@@ -62,9 +68,9 @@ const campaignService = {
 
       // Update to "enriching"
       await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .update({
-          status: 'enriching',
+          campaign_status: 'enriching',
           updated_at: new Date().toISOString(),
         })
         .eq('id', campaignId);
@@ -72,9 +78,9 @@ const campaignService = {
       const lixResult = await lixService.searchLeads(filters);
       if (!lixResult.success) {
         await supabase
-          .from('campaigns')
+          .from('campaigns_new')
           .update({
-            status: 'failed',
+            campaign_status: 'failed',
             updated_at: new Date().toISOString(),
           })
           .eq('id', campaignId);
@@ -97,14 +103,14 @@ const campaignService = {
 
       if (leadsToInsert.length > 0) {
         const { error: insertError } = await supabase
-          .from('linkedin_leads')
+          .from('leads_generated')
           .insert(leadsToInsert);
 
         if (insertError) {
           await supabase
-            .from('campaigns')
+            .from('campaigns_new')
             .update({
-              status: 'failed',
+              campaign_status: 'failed',
               updated_at: new Date().toISOString(),
             })
             .eq('id', campaignId);
@@ -114,9 +120,9 @@ const campaignService = {
       }
 
       await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .update({
-          status: 'active',
+          campaign_status: 'active',
           leads_generated: leadsToInsert.length,
           updated_at: new Date().toISOString(),
         })
@@ -135,9 +141,9 @@ const campaignService = {
       console.error('Lead generation error:', error.message);
 
       await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .update({
-          status: 'failed',
+          campaign_status: 'failed',
           updated_at: new Date().toISOString(),
         })
         .eq('id', campaignId);
@@ -154,7 +160,7 @@ const campaignService = {
   deleteCampaign: async (campaignId) => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .delete()
         .eq('id', campaignId)
         .select();
@@ -170,7 +176,7 @@ const campaignService = {
   getCampaignById: async (campaignId) => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .select('*')
         .eq('id', campaignId)
         .single();
@@ -186,11 +192,11 @@ const campaignService = {
   getCampaignLeads: async (campaignId) => {
     try {
       const { data, error } = await supabase
-        .from('linkedin_leads')
+        .from('leads_generated')
         .select(`
           *,
           campaign_id,
-          campaigns(name, id),
+          campaigns_new(name, id),
           meetings(id, scheduled_at, meeting_status)
         `)
         .eq('campaign_id', campaignId)
@@ -198,9 +204,9 @@ const campaignService = {
 
       if (error) return { success: false, error: error.message };
 
-      const leadsWithCampaignId = (data || []).map(lead => ({
+      const leadsWithCampaignId = (data || []).map((lead) => ({
         ...lead,
-        campaign_id: lead.campaign_id // Ensures campaign_id is always available explicitly
+        campaign_id: lead.campaign_id,
       }));
 
       return { success: true, data: leadsWithCampaignId };
@@ -210,13 +216,13 @@ const campaignService = {
   },
 
   // 🔹 Update campaign status
-  updateCampaignStatus: async (campaignId, status) => {
+  updateCampaignStatus: async (campaignId, campaign_status) => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('campaigns_new')
         .update({
-          status,
-          updated_at: new Date().toISOString()
+          campaign_status,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', campaignId)
         .select()
