@@ -1,19 +1,33 @@
 import { supabase } from './supabase';
 
 const contactService = {
-  // Get all contacts for the current user
-  getContacts: async () => {
+  // Get all leads for the current user via campaigns_new
+  getContacts: async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('campaigns_new')
+        .select(`
+          id,
+          name,
+          apollo_leads!fk_campaign(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false, referencedTable: 'apollo_leads' });
 
       if (error) {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      // Flatten the leads from all campaigns
+      const leads = data.flatMap(campaign => 
+        (campaign.apollo_leads || []).map(lead => ({
+          ...lead,
+          campaign_id: campaign.id,
+          campaign_name: campaign.name
+        }))
+      );
+
+      return { success: true, data: leads };
     } catch (error) {
       if (error?.message?.includes('Failed to fetch') || 
           error?.message?.includes('NetworkError')) {
@@ -22,15 +36,15 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to load contacts' };
+      return { success: false, error: 'Failed to load leads' };
     }
   },
 
-  // Create a new contact
+  // Create a new lead
   createContact: async (contactData) => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
+        .from('apollo_leads')
         .insert([contactData])
         .select()
         .single();
@@ -48,15 +62,15 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to create contact' };
+      return { success: false, error: 'Failed to create lead' };
     }
   },
 
-  // Update a contact
+  // Update a lead
   updateContact: async (contactId, updates) => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
+        .from('apollo_leads')
         .update(updates)
         .eq('id', contactId)
         .select()
@@ -75,15 +89,15 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to update contact' };
+      return { success: false, error: 'Failed to update lead' };
     }
   },
 
-  // Delete a contact
+  // Delete a lead
   deleteContact: async (contactId) => {
     try {
       const { error } = await supabase
-        .from('contacts')
+        .from('apollo_leads')
         .delete()
         .eq('id', contactId);
 
@@ -100,24 +114,38 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to delete contact' };
+      return { success: false, error: 'Failed to delete lead' };
     }
   },
 
-  // Search contacts
-  searchContacts: async (query) => {
+  // Search leads via campaigns_new
+  searchContacts: async (query, userId) => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .or(`name.ilike.%${query}%,email.ilike.%${query}%,company.ilike.%${query}%`)
-        .order('created_at', { ascending: false });
+        .from('campaigns_new')
+        .select(`
+          id,
+          name,
+          apollo_leads!fk_campaign(*)
+        `)
+        .eq('user_id', userId)
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,company.ilike.%${query}%`, { referencedTable: 'apollo_leads' })
+        .order('created_at', { ascending: false, referencedTable: 'apollo_leads' });
 
       if (error) {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      // Flatten the leads from all campaigns
+      const leads = data.flatMap(campaign => 
+        (campaign.apollo_leads || []).map(lead => ({
+          ...lead,
+          campaign_id: campaign.id,
+          campaign_name: campaign.name
+        }))
+      );
+
+      return { success: true, data: leads };
     } catch (error) {
       if (error?.message?.includes('Failed to fetch') || 
           error?.message?.includes('NetworkError')) {
@@ -126,15 +154,15 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to search contacts' };
+      return { success: false, error: 'Failed to search leads' };
     }
   },
 
-  // Import contacts from CSV
+  // Import leads from CSV
   importContacts: async (contactsArray) => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
+        .from('apollo_leads')
         .insert(contactsArray)
         .select();
 
@@ -151,7 +179,7 @@ const contactService = {
           error: 'Cannot connect to database. Your Supabase project may be paused or deleted. Please visit your Supabase dashboard to check project status.' 
         };
       }
-      return { success: false, error: 'Failed to import contacts' };
+      return { success: false, error: 'Failed to import leads' };
     }
   }
 };

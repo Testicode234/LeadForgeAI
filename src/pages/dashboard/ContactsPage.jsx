@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Icon from '../../components/AppIcon';
-import { supabase } from '../../utils/supabase';
+import contactService from '../../utils/contactService';
 import googleCalendarService from '../../utils/googleCalendarService';
 
 function ContactsPage() {
@@ -29,23 +29,14 @@ function ContactsPage() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('linkedin_leads')
-        .select(`
-          *,
-          campaigns(name, id),
-          meetings(id, scheduled_at, meeting_status)
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+      const response = await contactService.getContacts(user?.id);
 
-      if (error) {
-        setError('Failed to load leads: ' + error.message);
+      if (!response.success) {
+        setError('Failed to load leads: ' + response.error);
         return;
       }
 
-      setLeads(data || []);
+      setLeads(response.data || []);
     } catch (err) {
       setError('Failed to load leads');
     } finally {
@@ -91,8 +82,8 @@ function ContactsPage() {
   const confirmMeeting = async (timeSlot) => {
     try {
       const meetingData = {
-        title: `LinkedIn Lead Meeting - ${selectedLead.full_name}`,
-        description: `Meeting with ${selectedLead.full_name} (${selectedLead.job_title} at ${selectedLead.company}) from LinkedIn campaign`,
+        title: `Lead Meeting - ${selectedLead.full_name}`,
+        description: `Meeting with ${selectedLead.full_name} (${selectedLead.job_title} at ${selectedLead.company}) from campaign`,
         startTime: timeSlot.start.toISOString(),
         duration: 30,
         attendeeEmail: selectedLead.email,
@@ -124,7 +115,7 @@ function ContactsPage() {
         if (!error) {
           // Update lead status
           await supabase
-            .from('linkedin_leads')
+            .from('apollo_leads')
             .update({
               meeting_scheduled: true,
               meeting_scheduled_at: new Date().toISOString()
@@ -190,7 +181,7 @@ function ContactsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-headline-bold text-foreground">
-              LinkedIn Leads & Contacts
+              Leads & Contacts
             </h2>
             <p className="text-muted-foreground font-body">
               Manage your leads generated from campaigns
@@ -335,16 +326,16 @@ function ContactsPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="text-sm text-foreground">
-                          {lead.campaigns?.name || 'N/A'}
+                          {lead.campaign_name || 'N/A'}
                         </div>
                       </td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1 text-xs font-body-medium rounded-full border ${getLeadStatusColor(lead)}`}>
                           {getLeadStatusText(lead)}
                         </span>
-                        {lead.replied_at && (
+                        {lead.meeting_scheduled_at && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            Replied: {new Date(lead.replied_at).toLocaleDateString()}
+                            Scheduled: {new Date(lead.meeting_scheduled_at).toLocaleDateString()}
                           </div>
                         )}
                       </td>
@@ -353,7 +344,7 @@ function ContactsPage() {
                           <div>
                             <span className={`px-2 py-1 text-xs rounded ${
                               lead.reply_intent === 'interested' ? 'bg-success/20 text-success' :
-                              lead.reply_intent === 'not_interested'? 'bg-error/20 text-error' : 'bg-warning/20 text-warning'
+                              lead.reply_intent === 'not_interested' ? 'bg-error/20 text-error' : 'bg-warning/20 text-warning'
                             }`}>
                               {lead.reply_intent.replace('_', ' ')}
                             </span>
@@ -373,17 +364,15 @@ function ContactsPage() {
                             onClick={() => navigate(`/contacts/${lead.id}`)}
                             iconName="Eye"
                           />
-                          {lead.meetings?.length > 0 && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => window.open(lead.meetings[0].meeting_link, '_blank')}
-                              iconName="ExternalLink"
-                              iconPosition="left"
-                            >
-                              Join Meeting
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleScheduleMeeting(lead)}
+                            iconName="Calendar"
+                            iconPosition="left"
+                          >
+                            Schedule
+                          </Button>
                         </div>
                       </td>
                     </tr>

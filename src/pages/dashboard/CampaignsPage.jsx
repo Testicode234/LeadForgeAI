@@ -9,6 +9,7 @@ import Icon from '../../components/AppIcon';
 import creditService from '../../utils/creditService';
 import openaiService from '../../utils/openaiService';
 import campaignService from '../../utils/campaignService';
+import { supabase } from '../../utils/supabase';
 
 function CampaignsPage() {
   const [campaigns, setCampaigns] = useState([]);
@@ -18,6 +19,7 @@ function CampaignsPage() {
   const [showModal, setShowModal] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newCampaign, setNewCampaign] = useState({
     name: '',
     subject: '',
@@ -26,7 +28,7 @@ function CampaignsPage() {
     target_job_titles: [],
     target_industries: [],
     target_locations: [],
-    status: 'draft',
+    campaign_status: 'not_started',
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -34,12 +36,36 @@ function CampaignsPage() {
   useEffect(() => {
     loadCampaigns();
     loadCreditBalance();
+    checkApolloAuth();
   }, []);
+
+  const checkApolloAuth = async () => {
+    try {
+      const { data } = await supabase
+        .from('user_tokens')
+        .select('apollo_access_token')
+        .eq('user_id', user.id)
+        .single();
+      setIsAuthenticated(!!data?.apollo_access_token);
+    } catch (err) {
+      console.error('Error checking Apollo auth:', err);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleApolloAuth = () => {
+    const authUrl = `https://app.apollo.io/oauth/authorize?client_id=${
+      import.meta.env.VITE_APOLLO_CLIENT_ID
+    }&redirect_uri=${encodeURIComponent(
+      import.meta.env.VITE_APOLLO_REDIRECT_URI
+    )}&response_type=code`;
+    window.location.href = authUrl;
+  };
 
   const loadCampaigns = async () => {
     try {
       setLoading(true);
-      const result = await campaignService.getCampaigns(user?.id); // Pass user ID for filtering
+      const result = await campaignService.getCampaigns(user?.id);
 
       if (result?.success) {
         setCampaigns(result.data);
@@ -98,6 +124,7 @@ function CampaignsPage() {
         target_job_titles: newCampaign.target_job_titles.filter((t) => t.trim()),
         target_industries: newCampaign.target_industries.filter((t) => t.trim()),
         target_locations: newCampaign.target_locations.filter((t) => t.trim()),
+        campaign_status: 'not_started',
       };
 
       if (!campaignData.user_id) {
@@ -116,16 +143,14 @@ function CampaignsPage() {
         return;
       }
 
-      // Store campaign in Supabase
       const supabaseResult = await campaignService.createCampaign({
         ...campaignData,
         campaign_id: null,
         credits_used: 5,
-        status: 'draft',
       });
 
       if (!supabaseResult.success) {
-        await creditService.addCredits(user.id, 5, 'Supabase storage failed', 0); // Refund credits
+        await creditService.addCredits(user.id, 5, 'Supabase storage failed', 0);
         throw new Error(supabaseResult.error || 'Failed to store campaign in Supabase');
       }
 
@@ -138,7 +163,7 @@ function CampaignsPage() {
         target_job_titles: [],
         target_industries: [],
         target_locations: [],
-        status: 'draft',
+        campaign_status: 'not_started',
       });
       setShowModal(false);
       setCreditBalance((prev) => prev - 5);
@@ -202,12 +227,12 @@ function CampaignsPage() {
 
   const handleUpdateCampaignStatus = async (campaignId, newStatus) => {
     try {
-      const result = await campaignService.updateCampaign(campaignId, { status: newStatus });
+      const result = await campaignService.updateCampaignStatus(campaignId, newStatus);
 
       if (result?.success) {
         setCampaigns(
           campaigns.map((campaign) =>
-            campaign.id === campaignId ? { ...campaign, status: newStatus } : campaign
+            campaign.id === campaignId ? { ...campaign, campaign_status: newStatus } : campaign
           )
         );
         setError('');
@@ -223,60 +248,68 @@ function CampaignsPage() {
   const handleStartEnrichment = async (campaignId) => {
     try {
       setError('');
-      
-      // Get campaign details first
-      const campaign = campaigns.find(c => c.id === campaignId);
+
+      const campaign = campaigns.find((c) => c.id === campaignId);
       if (!campaign) {
         setError('Campaign not found');
         return;
       }
 
-      // Check credit balance for enrichment (15 credits)
       if (creditBalance < 15) {
         setError('Insufficient credits. You need at least 15 credits to start enrichment.');
         return;
       }
 
-      // Deduct credits for enrichment
+      if (!isAuthenticated) {
+        setError('Please authenticate with Apollo to start enrichment.');
+        return;
+      }
+
       const deductResult = await creditService.deductCredits(user.id, 15, `Enrichment for: ${campaign.name}`);
       if (!deductResult.success) {
         setError('Failed to deduct credits for enrichment');
         return;
       }
 
-      // Build targeting filters from campaign data
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('user_tokens')
+        .select('apollo_access_token')
+        .eq('user_id', user.id)
+        .single();
+
+      if (tokenError || !tokenData?.apollo_access_token) {
+        setError('No valid Apollo OAuth token found. Please authenticate with Apollo.');
+        return;
+      }
+
       const filters = {
         jobTitles: campaign.target_job_titles || [],
         industries: campaign.target_industries || [],
         locations: campaign.target_locations || [],
         companySizes: [],
         experienceLevels: [],
-        limit: 5 // Fetch 5 contacts as requested
+        limit: 5,
       };
 
-      // Start lead generation
-      const result = await campaignService.generateLeadsForCampaign(campaignId, filters);
+      const result = await campaignService.generateLeadsForCampaign(campaignId, filters, tokenData.apollo_access_token);
 
       if (result.success) {
-        // Update local campaign status and credit balance
-        setCampaigns(campaigns.map(c => 
-          c.id === campaignId 
-            ? { ...c, status: 'enriching', leads_generated: result.data.leadsGenerated }
-            : c
-        ));
-        setCreditBalance(prev => prev - 15);
+        setCampaigns(
+          campaigns.map((c) =>
+            c.id === campaignId
+              ? { ...c, campaign_status: 'processing', leads_generated: result.data.leadsGenerated }
+              : c
+          )
+        );
+        setCreditBalance((prev) => prev - 15);
         setError('');
-        
-        // Show success message
         alert(`Successfully started enrichment! Generated ${result.data.leadsGenerated} leads.`);
       } else {
-        // Refund credits on failure
         await creditService.addCredits(user.id, 15, 'Enrichment failed - refund', 0);
         setError('Failed to start enrichment: ' + result.error);
       }
     } catch (err) {
       console.error('Error starting enrichment:', err);
-      // Refund credits on error
       await creditService.addCredits(user.id, 15, 'Enrichment error - refund', 0);
       setError('An error occurred while starting enrichment: ' + err.message);
     }
@@ -310,14 +343,14 @@ function CampaignsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active':
+      case 'completed':
         return 'bg-success/20 text-success border-success/30';
-      case 'enriching':
+      case 'processing':
         return 'bg-primary/20 text-primary border-primary/30';
-      case 'paused':
-        return 'bg-warning/20 text-warning border-warning/30';
-      case 'draft':
+      case 'not_started':
         return 'bg-muted/20 text-muted-foreground border-muted/30';
+      case 'failed':
+        return 'bg-error/20 text-error border-error/30';
       default:
         return 'bg-muted/20 text-muted-foreground border-muted/30';
     }
@@ -360,16 +393,29 @@ function CampaignsPage() {
               Create and manage your AI SDR campaigns • {creditBalance} credits available
             </p>
           </div>
-          <Button
-            onClick={() => setShowModal(true)}
-            variant="default"
-            className="cta-button"
-            iconName="Plus"
-            iconPosition="left"
-            disabled={creditBalance < 20}
-          >
-            Add Campaign
-          </Button>
+          <div className="flex space-x-2">
+            {!isAuthenticated && (
+              <Button
+                onClick={handleApolloAuth}
+                variant="outline"
+                className="cta-button"
+                iconName="Link"
+                iconPosition="left"
+              >
+                Connect Apollo
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowModal(true)}
+              variant="default"
+              className="cta-button"
+              iconName="Plus"
+              iconPosition="left"
+              disabled={creditBalance < 20}
+            >
+              Add Campaign
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -471,10 +517,10 @@ function CampaignsPage() {
                       <td className="py-4 px-6">
                         <span
                           className={`px-3 py-1 text-xs font-body-medium rounded-full border ${getStatusColor(
-                            campaign.status
+                            campaign.campaign_status
                           )}`}
                         >
-                          {campaign.status}
+                          {campaign.campaign_status}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-sm text-foreground font-body-medium">
@@ -494,30 +540,25 @@ function CampaignsPage() {
                             onClick={() => navigate(`/campaigns/${campaign.id}`)}
                             iconName="Eye"
                           />
-                          {campaign.status === 'draft' && (
+                          {campaign.campaign_status === 'not_started' && (
                             <Button
                               size="sm"
                               variant="default"
                               onClick={() => handleStartEnrichment(campaign.id)}
-                              disabled={creditBalance < 15}
+                              disabled={creditBalance < 15 || !isAuthenticated}
                               className="cta-button"
                               iconName="Zap"
                             >
                               Start Enrichment
                             </Button>
                           )}
-                          {campaign.status !== 'draft' && campaign.status !== 'enriching' && (
+                          {campaign.campaign_status === 'completed' && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                handleUpdateCampaignStatus(
-                                  campaign.id,
-                                  campaign.status === 'active' ? 'paused' : 'active'
-                                )
-                              }
+                              onClick={() => handleSendMessages(campaign.id)}
                             >
-                              {campaign.status === 'active' ? 'Pause' : 'Resume'}
+                              Send Messages
                             </Button>
                           )}
                           <Button
@@ -593,7 +634,6 @@ function CampaignsPage() {
                 </div>
               </div>
 
-              {/* LinkedIn Targeting */}
               <div className="space-y-4">
                 <h4 className="text-md font-headline-bold text-foreground">LinkedIn Targeting</h4>
 

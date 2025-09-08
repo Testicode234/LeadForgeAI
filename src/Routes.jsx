@@ -4,7 +4,6 @@ import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/dashboard/ProtectedRoute";
-// Add your imports here
 import LandingPage from "./pages/landing-page";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/auth/LoginPage";
@@ -17,6 +16,7 @@ import ContactsPage from "./pages/dashboard/ContactsPage";
 import ContactPreviewPage from './pages/dashboard/ContactPreviewPage';
 import CreditsPage from "./pages/dashboard/CreditsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import CallbackPage from "./pages/CallbackPage";
 
 const Routes = () => {
   return (
@@ -25,12 +25,12 @@ const Routes = () => {
         <AuthProvider>
           <ScrollToTop />
           <RouterRoutes>
-            {/* Define your routes here */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/landing-page" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/callback" element={<CallbackPage />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <DashboardPage />
@@ -51,7 +51,7 @@ const Routes = () => {
                 <ContactsPage />
               </ProtectedRoute>
             } />
-              <Route path="/contacts/:contactId" element={
+            <Route path="/contacts/:contactId" element={
               <ProtectedRoute>
                 <ContactPreviewPage />
               </ProtectedRoute>

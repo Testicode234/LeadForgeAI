@@ -7,7 +7,7 @@ import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 import campaignService from '../../utils/campaignService';
-import lixService from '../../utils/lixService';
+import lixService from '../../utils/apolloService';
 
 function CampaignPreviewPage() {
   const { id } = useParams();
