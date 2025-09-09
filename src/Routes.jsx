@@ -17,6 +17,7 @@ import ContactPreviewPage from './pages/dashboard/ContactPreviewPage';
 import CreditsPage from "./pages/dashboard/CreditsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import CallbackPage from "./pages/CallbackPage";
+import ComingSoon from "./pages/ComingSoon"
 
 const Routes = () => {
   return (
@@ -31,6 +32,7 @@ const Routes = () => {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/callback" element={<CallbackPage />} />
+            <Route path="/soon" element={<ComingSoon />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <DashboardPage />

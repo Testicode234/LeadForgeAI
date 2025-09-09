@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,18 +7,19 @@ const CallbackPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [status, setStatus] = useState('Processing Apollo authentication...');
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const code = searchParams.get('code');
       if (!code) {
         console.error('No code found in URL');
+        setStatus('Error: No authorization code found.');
         navigate('/campaigns?error=no_code');
         return;
       }
 
       try {
-
         const response = await fetch('https://api.apollo.io/v1/oauth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -41,7 +42,6 @@ const CallbackPage = () => {
           throw new Error('No access token received');
         }
 
-        // Store token in user_tokens table
         const { error } = await supabase
           .from('user_tokens')
           .upsert({
@@ -55,9 +55,11 @@ const CallbackPage = () => {
           throw new Error('Failed to store token: ' + error.message);
         }
 
+        setStatus('Authentication successful! Redirecting to campaigns...');
         navigate('/campaigns?success=auth_completed');
       } catch (error) {
         console.error('OAuth Callback Error:', error);
+        setStatus(`Error: ${error.message}`);
         navigate(`/campaigns?error=${encodeURIComponent(error.message)}`);
       }
     };
@@ -68,8 +70,14 @@ const CallbackPage = () => {
   }, [user, searchParams, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="text-foreground">Processing Apollo authentication...</div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
+      <div className="text-foreground">{status}</div>
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+      >
+        Go to Dashboard
+      </button>
     </div>
   );
 };
