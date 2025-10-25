@@ -1,9 +1,9 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
-import Icon from '../AppIcon';
-import Button from '../ui/Button';
+import Icon from "../AppIcon";
+import Button from "../ui/Button";
 
 const DashboardLayout = ({ children, title, currentPath }) => {
   const { user, userProfile, signOut } = useAuth();
@@ -12,19 +12,19 @@ const DashboardLayout = ({ children, title, currentPath }) => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate("/login");
     } catch (err) {
-      console.log('Logout error:', err);
+      console.log("Logout error:", err);
     }
   };
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: 'BarChart3' },
-    { path: '/campaigns', label: 'Campaigns', icon: 'Megaphone' },
-    { path: '/contacts', label: 'Contacts', icon: 'Users' },
-    { path: '/soon', label: 'Meetings', icon: 'Users' },
-    { path: '/credits', label: 'Credits', icon: 'Coins' },
-    { path: '/settings', label: 'Settings', icon: 'Settings' }
+    { path: "/dashboard", label: "Dashboard", icon: "BarChart3" },
+    { path: "/campaigns", label: "Campaigns", icon: "Megaphone" },
+    { path: "/contacts", label: "Contacts", icon: "Users" },
+    { path: "/soon", label: "Meetings", icon: "Users" },
+    { path: "/credits", label: "Credits", icon: "Coins" },
+    { path: "/settings", label: "Settings", icon: "Settings" },
   ];
 
   return (
@@ -34,11 +34,13 @@ const DashboardLayout = ({ children, title, currentPath }) => {
         <div>
           {/* Logo & Title */}
           <div className="flex items-center mb-8">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Icon name="Bot" size={20} color="var(--color-primary-foreground)" />
+            <div className="flex items-center justify-center">
+              <Icon name="Bot" size={40} color="var(--color-primary)" />
             </div>
             <div className="ml-3">
-              <h1 className="text-xl font-headline-bold text-foreground">LeadForge AI</h1>
+              <h1 className="text-xl font-headline-bold text-foreground">
+                LeadForge AI
+              </h1>
               <p className="text-sm text-muted-foreground">{title}</p>
             </div>
           </div>
@@ -52,7 +54,9 @@ const DashboardLayout = ({ children, title, currentPath }) => {
                 size="sm"
                 onClick={() => navigate(item.path)}
                 className={`w-full justify-start text-foreground border border-transparent hover:border-lime-500 hover:bg-lime-500 focus:border-lime-500 focus:bg-black focus:outline-none transition-all duration-200 py-5  ${
-                  currentPath === item.path ? 'bg-black border-lime-500 text-white' : ''
+                  currentPath === item.path
+                    ? "bg-black border-lime-500 text-white"
+                    : ""
                 }`}
                 iconName={item.icon}
                 iconPosition="left"
@@ -82,9 +86,7 @@ const DashboardLayout = ({ children, title, currentPath }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6">
-        {children}
-      </main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 };
