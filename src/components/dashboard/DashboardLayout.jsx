@@ -50,13 +50,15 @@ const DashboardLayout = ({ children, title, currentPath }) => {
       {/* Sidebar */}
       <aside
         className={`fixed md:static 
-        top-[64px] md:top-0  /* 👈 Sidebar starts below the header on mobile */
+        top-[64px] md:top-0  
         left-0 
-        h-[calc(100%-64px)] md:h-screen  /* 👈 Adjusts height on mobile */
+        h-[calc(100%-64px)] md:h-screen  
         w-64 glassmorphism shadow-md border-r border-border 
         p-6 flex flex-col justify-between transform transition-transform 
         duration-300 ease-in-out z-20 bg-background
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
       >
         <div>
           {/* Logo & Title (hidden on mobile header) */}
