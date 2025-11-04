@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import Icon from "../../../components/AppIcon";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
 
@@ -16,8 +16,8 @@ const HeroSection = () => {
       setIsSubmitted(true);
 
       setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+        navigate("/login");
+      }, 4000);
     }
   };
 
@@ -25,7 +25,11 @@ const HeroSection = () => {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
       {/* Animated Waveform Background */}
       <div className="absolute inset-0 opacity-20">
-        <svg className="w-full h-full" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <svg
+          className="w-full h-full"
+          viewBox="0 0 1200 800"
+          preserveAspectRatio="xMidYMid slice"
+        >
           <defs>
             <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#84cc16" stopOpacity="0.3" />
@@ -36,20 +40,22 @@ const HeroSection = () => {
           {[...Array(8)].map((_, i) => (
             <motion.path
               key={i}
-              d={`M0,${400 + i * 20} Q300,${350 + i * 15} 600,${400 + i * 20} T1200,${400 + i * 20}`}
+              d={`M0,${400 + i * 20} Q300,${350 + i * 15} 600,${
+                400 + i * 20
+              } T1200,${400 + i * 20}`}
               stroke="url(#waveGradient)"
               strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ 
-                pathLength: 1, 
+              animate={{
+                pathLength: 1,
                 opacity: [0, 0.8, 0.4, 0.8, 0.4],
-                y: [0, -10, 0, 10, 0]
+                y: [0, -10, 0, 10, 0],
               }}
-              transition={{ 
-                duration: 4 + i * 0.5, 
+              transition={{
+                duration: 4 + i * 0.5,
                 repeat: Infinity,
-                delay: i * 0.2
+                delay: i * 0.2,
               }}
             />
           ))}
@@ -66,19 +72,20 @@ const HeroSection = () => {
           <div className="inline-flex items-center space-x-2 glassmorphism rounded-full px-4 py-2 mb-8">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             <span className="text-sm font-body-medium text-muted-foreground">
-              Built for Enterpreneurs Worldwide 
+              Built for Enterpreneurs Worldwide
             </span>
           </div>
 
           {/* Main Headline */}
           <h1 className="font-headline-black text-4xl md:text-6xl lg:text-7xl text-foreground mb-6 leading-tight">
-            Turn LinkedIn Into Your{' '}
+            Turn the Web Into Your{" "}
             <span className="text-primary">24/7 AI Sales Machine</span>
           </h1>
 
           {/* Supporting Subheadline */}
           <p className="font-body text-xl md:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed">
-            Generate 3x More Qualified Leads While You Sleep - No Manual Prospecting Required
+            Generate 3x More Qualified Leads While You Sleep - No Manual
+            Prospecting Required
           </p>
 
           {/* Email Capture Form */}
@@ -89,7 +96,10 @@ const HeroSection = () => {
             className="max-w-md mx-auto"
           >
             {!isSubmitted ? (
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4">
+              <form
+                onSubmit={handleEmailSubmit}
+                className="flex flex-col sm:flex-row gap-4"
+              >
                 <div className="flex-1">
                   <Input
                     type="email"
@@ -117,8 +127,15 @@ const HeroSection = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="glassmorphism rounded-lg p-6 text-center"
               >
-                <Icon name="CheckCircle" size={48} color="var(--color-primary)" className="mx-auto mb-4" />
-                <h3 className="font-headline-bold text-xl text-foreground mb-2">You're In!</h3>
+                <Icon
+                  name="CheckCircle"
+                  size={48}
+                  color="var(--color-primary)"
+                  className="mx-auto mb-4"
+                />
+                <h3 className="font-headline-bold text-xl text-foreground mb-2">
+                  You're In!
+                </h3>
                 <p className="text-muted-foreground">
                   Kindly create a LeadForge account to get started
                 </p>
