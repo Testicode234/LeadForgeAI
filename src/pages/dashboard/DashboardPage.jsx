@@ -235,66 +235,74 @@ function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Welcome Section with Credit Balance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="glassmorphism rounded-xl p-6"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-headline-bold text-foreground mb-2">
-                Welcome back! 👋
-              </h2>
-              <p className="text-muted-foreground font-body">
-                Here's what's happening with your AI SDR campaigns today.
-              </p>
-              <div className="mt-4 flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  <span className="text-sm font-body-semibold text-foreground">
-                    Credit Balance: {creditBalance} credits
-                  </span>
-                </div>
-                {creditBalance < 20 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCreditModal(true)}
-                    iconName="CreditCard"
-                    iconPosition="left"
-                    className="text-warning border-warning hover:bg-warning/10"
-                  >
-                    Buy Credits
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.href = '/campaigns'}
-                iconName="Plus"
-                iconPosition="left"
-                disabled={creditBalance < 20}
-              >
-                New Campaign
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => window.location.href = '/contacts'}
-                iconName="Upload"
-                iconPosition="left"
-                className="cta-button"
-              >
-                View Leads
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+       {/* Welcome Section with Credit Balance */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.6 }}
+  className="glassmorphism rounded-xl p-4 sm:p-5 md:p-6 w-full"
+>
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    {/* Left Section */}
+    <div className="text-center md:text-left">
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-headline-bold text-foreground mb-2">
+        Welcome back! 👋
+      </h2>
+      <p className="text-sm sm:text-base text-muted-foreground font-body max-w-md mx-auto md:mx-0">
+        Here's what's happening with your AI SDR campaigns today.
+      </p>
+
+      {/* Credit Balance + Buy Button */}
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-4">
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 rounded-full bg-primary"></div>
+          <span className="text-sm sm:text-base font-body-semibold text-foreground">
+            Credit Balance: {creditBalance} credits
+          </span>
+        </div>
+
+        {creditBalance < 20 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreditModal(true)}
+            iconName="CreditCard"
+            iconPosition="left"
+            className="text-warning border-warning hover:bg-warning/10 w-full sm:w-auto"
+          >
+            Buy Credits
+          </Button>
+        )}
+      </div>
+    </div>
+
+    {/* Right Section (Buttons) */}
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full md:w-auto">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => (window.location.href = '/campaigns')}
+        iconName="Plus"
+        iconPosition="left"
+        disabled={creditBalance < 20}
+        className="w-full sm:w-auto"
+      >
+        New Campaign
+      </Button>
+      <Button
+        variant="default"
+        size="sm"
+        onClick={() => (window.location.href = '/contacts')}
+        iconName="Upload"
+        iconPosition="left"
+        className="cta-button w-full sm:w-auto"
+      >
+        View Leads
+      </Button>
+    </div>
+  </div>
+</motion.div>
+
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
